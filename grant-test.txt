@@ -1,0 +1,155 @@
+在数据库服务器192.168.4.50上做如下:
+1、修改数据库管理员从本机登录的密码为plj666, 数据库管理员使用新密码从本机连接数据库服务器
+mysql> set global validate_password_policy=low; //设置长度 
+mysql> set global validate_password_length=6; 
+mysql> alter user user() identified by "plj666"; //修改密码
+————————————————
+
+2、查看当前登陆数据库服务器的用户是谁？
+ select user();
+
+3、查看当前登陆数据库服务器用户的权限？
+mysql> select user,host from mysql.user;
+
+4、查看当前数据库服务器有哪些授权用户?
+show grants;
+mysql> select user,host from mysql.user;
+
+5、授权管理员用户root可以在网络中的192.168.4.254主机登录，对所有库和表有完全权限且有授权的权限 登陆密码tarena
+grant all on *.* to root@192.168.4.254 identified by 'tarena';
+
+6、不允许数据库管理员root在数据库服务器本机登录。
+mysql>delete from mysql.user where  user="root" and host="localhost"; flush privileges;
+
+
+7、授权yaya108用户可以从网络中的任意主机访问数据库服务器，仅对对userdb库下的user表有查看记录、更新name字段的权限 ，  
+   登录密码userweb888。
+mysql> grant select,update(name) on userdb.user to yaya108@"%" identified by "userweb888";
+
+
+8、验证以上授权是否成功
+mysql -h192.168.4.50 -uyaya108 -p"userweb888"
+
+
+9、yaya108用户修改自己的登陆密码为123456,并验证能否使用新密码登陆
+]# mysql -h192.168.4.50 -uyaya108 -p"userweb888"
+
+mysql> alter user user() identified by "123456";
+
+mysql> exit
+
+]# mysql -h192.168.4.50 -uyaya108 -p"123456"
+
+
+10、 数据库管理员修改授权用户yaya的登录密码为654321，让授权用户yaya 使用新密码登陆数据库服务器。
+]# mysql -uroot -pplj666       //管理员登录
+
+mysql> set password for yaya108@"%"=password("654321");
+
+mysql> exit
+
+]# mysql -uyaya108 -p654321
+
+
+
+11、撤销授权用户yaya108 的所有授权并 使其不再能使用此用户连接数据库服务器。
+mysql> revoke all on userdb.user from yaya108@"%";
+ 
+ mysql> drop user yaya108@"%";
+
+
+12、授权webadmin用户可以从网络中的所有主机登录，对bbsdb库拥有完全权限，且有授权权限，登录密码为 123456
+ysql> create database bbsdb;           //创库
+
+mysql> grant all on bbsdb.* to webadmin@"%" identified by "123456"   with  grant option;                 //授权
+
+
+mysql> grant insert on mysql.* to webadmin@"%"
+
+]# mysql -h192.168.4.50  -uwebadmin -p123456     //验证登录
+
+mysql> show grants;           //用户查看自己的权限
+
+
+
+
+13、在客户端使用授权用户webadmin登录，把自己的权限授权给userone用户 ， 登录密码是  123456
+# mysql -h192.168.4.50 -uwebadmin -p123456
+
+mysql> grant all on bbsdb.* to userone@"%" identified by "123456"   with  grant option;
+
+mysql>  grant insert on mysql.* to userone@"%";
+
+
+
+14、撤销webadmin用户的授权权限。
+mysql> revoke grant option on *.* from webadmin@"%";
+
+15、授权数据库管理员可以在本机连接数据库服务。
+mysql> grant all on *.* to root@"localhost" identified by "123456" with grant option
+
+
+
+
+16、不允许主机192.168.4.254使用root用户连接数据库服务器192.168.4.50
+mysql> delete from mysql.user where user="root" and host="192.168.4.254";flush privileges;
+
+
+
+权限列表：
+----all-----匹配所有权限
+—select，update，insert、、、、、
+----select，update（字段1，、、、字段N）
+
+客户端地址：
+–%-------匹配所有主机
+–192.168.1.%----------匹配指定的一个网段
+—192.168.1.1----------匹配指定ip地址的单个主机
+–%.tarena.com--------匹配一个DNS区域
+–svr1.tarena.com-----匹配指定域名的单个主机
+
+查看用户授权
+—show grants； //用户查看自己的权限
+
+----show grants for 用户名@“客户端地址”； //管理员查看其他用户的权限
+
+重设用户密码：
+
+授权用户连接后修改密码----- set password=password(“新密码”);
+
+管理员重置授权用户连接密码：
+— set password for 用户名@”客户端地址”=password(“新密码 ”)；
+
+撤销授权----把添加用户的访问权限删除
+
+Revoke 权限列表 on 库名.表名 from 用户名@“客户端地址”；
+
+删除添加的用户
+
+mysql>drop user 用户名@“客户端地址”；
+
+.授权库mysql：记录授权信息的库，使用不同的表记录授权信息
+
+User表 ----存储已有的授权用户
+
+desc mysql.user; select user,host from mysql.user;
+
+db表 -----存储授权用户对库的访问权限
+
+Tables_priv表-----存储 授权用户对表的访问权限
+
+Columns_priv表------存储授权用户对表字段的访问权限
+
+
+
+
+
+
+
+
+
+
+
+
+
+
